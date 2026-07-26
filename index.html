@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planilla de Seguimiento Psicosocial - Excel de Gestión Escolar</title>
+    <!-- Tailwind CSS para diseño responsivo moderno -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome para iconos de Excel y herramientas -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- SheetJS para la exportación y carga real a Excel (.xlsx) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Personalización de la barra de desplazamiento */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-emerald-700 text-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="p-2.5 bg-emerald-800 rounded-lg text-white border border-emerald-600 shadow-inner">
+                    <i class="fa-solid fa-file-excel text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight">Sistema de Seguimiento Psicosocial y Convivencia</h1>
+                    <p class="text-xs text-emerald-100 flex items-center gap-1.5 mt-0.5">
+                        <span class="inline-block w-2 h-2 rounded-full bg-emerald-300 animate-pulse"></span>
+                        Gestor de Casos INBA con Guardado Seguro
+                    </p>
+                </div>
+            </div>
+            
+            <div class="flex flex-wrap items-center gap-2">
+                <!-- Indicador de Sincronización Local / Nube -->
+                <div id="sync-status" class="bg-emerald-800 text-emerald-200 border border-emerald-600 text-xs px-3 py-2 rounded-lg flex items-center gap-2 font-medium">
+                    <span class="relative flex h-2 w-2">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-cyan-500" id="sync-dot"></span>
+                    </span>
+                    <span id="sync-text">Cargando almacenamiento...</span>
+                </div>
+
+                <button onclick="exportToExcel()" class="bg-white text-emerald-800 hover:bg-emerald-50 font-semibold px-4 py-2 rounded-lg text-sm transition-all duration-150 flex items-center gap-2 shadow">
+                    <i class="fa-solid fa-file-arrow-down text-base"></i>
+                    Descargar Excel Real (.xlsx)
+                </button>
+                <button onclick="openHelpModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-3.5 py-2 rounded-lg text-sm transition-all border border-emerald-500 flex items-center gap-2">
+                    <i class="fa-solid fa-circle-info"></i>
+                    Ver Fórmulas
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Dashboard Stats Panel -->
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full">
+        <!-- Resumen KPI -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <span class="text-xs text-slate-500 font-medium uppercase">Casos Totales</span>
+                    <h3 id="stat-total" class="text-2xl font-bold text-slate-900 mt-1">0</h3>
+                </div>
+                <div class="p-3 bg-blue-50 text-blue-600 rounded-lg"><i class="fa-solid fa-graduation-cap text-xl"></i></div>
+            </div>
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <span class="text-xs text-slate-500 font-medium uppercase">Asistencia Crítica (&lt;85%)</span>
+                    <h3 id="stat-critical-attendance" class="text-2xl font-bold text-red-600 mt-1">0</h3>
+                </div>
+                <div class="p-3 bg-red-50 rounded-lg text-red-600"><i class="fa-solid fa-triangle-exclamation text-xl"></i></div>
+            </div>
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <span class="text-xs text-slate-500 font-medium uppercase">Plazos Vencidos</span>
+                    <h3 id="stat-expired-deadlines" class="text-2xl font-bold text-rose-700 mt-1">0</h3>
+                </div>
+                <div class="p-3 bg-rose-50 text-rose-600 rounded-lg"><i class="fa-solid fa-clock text-xl"></i></div>
+            </div>
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <span class="text-xs text-slate-500 font-medium uppercase">Medidas Activas</span>
+                    <h3 id="stat-active-measures" class="text-2xl font-bold text-amber-600 mt-1">0</h3>
+                </div>
+                <div class="p-3 bg-amber-50 text-amber-600 rounded-lg"><i class="fa-solid fa-shield-halved text-xl"></i></div>
+            </div>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="flex flex-wrap items-center gap-3 font-medium">
+                <div class="relative w-full sm:w-72">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                        <i class="fa-solid fa-magnifying-glass text-sm"></i>
+                    </span>
+                    <input type="text" id="searchInput" oninput="filterData()" placeholder="Buscar estudiante, RUN, curso o apoderado..." class="pl-9 pr-4 py-2 w-full border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                </div>
+                
+                <select id="filterMotive" onchange="filterData()" class="border border-slate-300 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
+                    <option value="">Todos los Motivos</option>
+                    <option value="Salud Mental">Salud Mental</option>
+                    <option value="Violencia Familiar">Violencia Familiar</option>
+                    <option value="Negligencia">Negligencia</option>
+                    <option value="Convivencia Escolar">Convivencia Escolar</option>
+                    <option value="Ausentismo Reiterado">Ausentismo Reiterado</option>
+                </select>
+
+                <select id="filterStatus" onchange="filterData()" class="border border-slate-300 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
+                    <option value="">Todos los Estados</option>
+                    <option value="No Iniciado">No Iniciado</option>
+                    <option value="En Proceso">En Proceso</option>
+                    <option value="Cerrado">Cerrado</option>
+                </select>
+            </div>
+
+            <!-- Botones de Acción (Nuevo Registro e Importador de Excel) -->
+            <div class="flex items-center gap-2">
+                <!-- Input Oculto para Cargar Archivos Excel -->
+                <input type="file" id="excelInput" accept=".xlsx, .xls, .csv" class="hidden" onchange="importExcel(event)">
+                
+                <button onclick="document.getElementById('excelInput').click()" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg text-sm transition-all duration-150 flex items-center gap-1.5 shadow-sm" title="Subir planilla Excel completa">
+                    <i class="fa-solid fa-file-import text-xs"></i>
+                    📥 Importar Excel
+                </button>
+                
+                <button onclick="openAddModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2 rounded-lg text-sm transition-all duration-150 flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-plus text-xs"></i>
+                    Nuevo Registro
+                </button>
+            </div>
+        </div>
+
+        <!-- Spreadsheet Container -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+            <div class="overflow-x-auto w-full">
+                <table class="min-w-full divide-y divide-slate-200 text-left border-collapse text-xs">
+                    <thead>
+                        <!-- Dimension Categories (Header level 1) -->
+                        <tr class="bg-slate-100 divide-x divide-slate-200 border-b border-slate-200 text-center font-bold text-slate-600">
+                            <th colspan="7" class="px-3 py-2 bg-slate-200 text-slate-800">I. IDENTIFICACIÓN</th>
+                            <th colspan="5" class="px-3 py-2 bg-blue-50 text-blue-900">II. PSICOSOCIAL (DUPLA)</th>
+                            <th colspan="4" class="px-3 py-2 bg-amber-50 text-amber-900">III. DISCIPLINARIO (CONVIVENCIA)</th>
+                            <th colspan="2" class="px-3 py-2 bg-purple-50 text-purple-900">IV. ACADÉMICO / ASISTENCIA</th>
+                            <th colspan="2" class="px-3 py-2 bg-rose-50 text-rose-950">V. ALERTAS AUTOMÁTICAS</th>
+                            <th colspan="1" class="px-3 py-2 bg-slate-100 text-slate-800">VI. BITÁCORA</th>
+                            <th class="px-3 py-2 bg-slate-200 text-slate-800 font-bold">ACCIONES</th>
+                        </tr>
+                        <!-- Subheadings (Header level 2) -->
+                        <tr class="bg-slate-50 divide-x divide-slate-200 border-b border-slate-300 text-[10px] font-semibold text-slate-600 uppercase tracking-wider">
+                            <!-- Identificación -->
+                            <th class="px-3 py-2.5 min-w-[50px]">A: ID</th>
+                            <th class="px-3 py-2.5 min-w-[90px]">B: RUN/ID</th>
+                            <th class="px-3 py-2.5 min-w-[90px]">C: Curso</th>
+                            <th class="px-3 py-2.5 min-w-[140px]">D: Nombre Completo</th>
+                            <th class="px-3 py-2.5 min-w-[130px] text-emerald-800 font-bold bg-emerald-50/20">E: Nombre Apoderado</th>
+                            <th class="px-3 py-2.5 min-w-[130px] text-emerald-800 font-bold bg-emerald-50/20">F: Correo Apoderado</th>
+                            <th class="px-3 py-2.5 min-w-[100px] text-emerald-800 font-bold bg-emerald-50/20">G: Teléfono Apoderado</th>
+                            <!-- Psicosocial -->
+                            <th class="px-3 py-2.5 min-w-[90px] bg-blue-50/50">H: F. Derivación</th>
+                            <th class="px-3 py-2.5 min-w-[120px] bg-blue-50/50">I: Motivo Derivación</th>
+                            <th class="px-3 py-2.5 min-w-[140px] text-blue-900 font-bold bg-blue-100/30">J: Derivación Externa</th>
+                            <th class="px-3 py-2.5 min-w-[100px] bg-blue-50/50">K: Profesional</th>
+                            <th class="px-3 py-2.5 min-w-[95px] bg-blue-50/50">L: Estado Interv.</th>
+                            <!-- Disciplinario -->
+                            <th class="px-3 py-2.5 min-w-[80px] bg-amber-50/50">M: ¿Medida Activa?</th>
+                            <th class="px-3 py-2.5 min-w-[120px] bg-amber-50/50">N: Tipo de Medida</th>
+                            <th class="px-3 py-2.5 min-w-[90px] bg-amber-50/50">O: F. Inicio M.</th>
+                            <th class="px-3 py-2.5 min-w-[90px] bg-amber-50/50">P: F. Límite Cierre</th>
+                            <!-- Academico -->
+                            <th class="px-3 py-2.5 min-w-[70px] bg-purple-50/50">Q: Promedio</th>
+                            <th class="px-3 py-2.5 min-w-[75px] bg-purple-50/50">R: % Asistencia</th>
+                            <!-- Alertas -->
+                            <th class="px-3 py-2.5 min-w-[140px] bg-rose-50/50 text-rose-800">S: Alerta Asistencia</th>
+                            <th class="px-3 py-2.5 min-w-[140px] bg-rose-50/50 text-rose-800">T: Alerta Plazo</th>
+                            <!-- Bitácora -->
+                            <th class="px-3 py-2.5 min-w-[160px] text-slate-800 bg-slate-50 font-bold">U: Observaciones</th>
+                            <!-- Acciones -->
+                            <th class="px-3 py-2.5 text-center bg-slate-50 min-w-[80px]">Gestión</th>
+                        </tr>
+                    </thead>
+                    <tbody id="studentTableBody" class="divide-y divide-slate-200 bg-white">
+                        <!-- Las filas se insertarán dinámicamente con JS -->
+                    </tbody>
+                </table>
+            </div>
+            <!-- Tabla vacía feedback -->
+            <div id="emptyState" class="hidden py-12 text-center">
+                <i class="fa-solid fa-folder-open text-slate-300 text-4xl mb-3"></i>
+                <p class="text-slate-500 font-medium">No se encontraron registros de estudiantes.</p>
+                <p class="text-xs text-slate-400 mt-1">Prueba cambiando los criterios de búsqueda, importa un Excel o agrega un caso.</p>
+            </div>
+            
+            <!-- Table Footer Status info -->
+            <div class="px-4 py-3 bg-slate-50 border-t border-slate-200 text-xs text-slate-500 flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="flex flex-col gap-1">
+                    <span>Mostrando <strong id="displayedCount" class="text-slate-700">0</strong> de <strong id="totalCount" class="text-slate-700">0</strong> estudiantes registrados.</span>
+                    <span id="userIdDisplay" class="text-[10px] text-slate-400 font-mono font-semibold">Iniciando base de datos...</span>
+                </div>
+                <span class="flex items-center gap-1 text-right md:text-left"><i class="fa-regular fa-lightbulb text-amber-500 animate-bounce"></i> Los datos se guardan en tiempo real de forma permanente e institucional.</span>
+            </div>
+        </div>
+    </main>
+
+    <!-- Formula Reference Modal -->
+    <div id="helpModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-xl shadow-xl border border-slate-200 max-w-2xl w-full overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="p-4 bg-emerald-700 text-white flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-code text-lg"></i>
+                    <h3 class="font-bold text-base">Fórmulas Lógicas de Excel Utilizadas</h3>
+                </div>
+                <button onclick="closeHelpModal()" class="text-emerald-100 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="p-6 overflow-y-auto space-y-5 text-sm text-slate-700">
+                <div>
+                    <h4 class="font-bold text-slate-900 flex items-center gap-1.5 mb-1">
+                        <span class="inline-block w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                        1. Alerta de Asistencia Crónica (Columna S en Excel)
+                    </h4>
+                    <p class="text-slate-600 mb-2 text-xs">Clasifica el porcentaje de asistencia (Columna R) según umbrales de riesgo escolar nacional.</p>
+                    <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 font-mono text-xs select-all mb-2">
+                        <span class="text-slate-500 font-semibold block text-[10px] uppercase tracking-wider mb-1">Español (Excel):</span>
+                        =SI(R2=""; ""; SI(R2&lt;0,85; "CRÍTICA (Asistencia Crónica)"; SI(R2&lt;0,90; "RIESGO (En Peligro)"; "REGULAR (Ok)")))
+                    </div>
+                </div>
+
+                <div>
+                    <h4 class="font-bold text-slate-900 flex items-center gap-1.5 mb-1">
+                        <span class="inline-block w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                        2. Alerta de Plazos y Cierre (Columna T en Excel)
+                    </h4>
+                    <p class="text-slate-600 mb-2 text-xs">Monitorea los días hábiles hasta la fecha límite (Columna P) si el proceso no se encuentra cerrado (Columna L).</p>
+                    <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 font-mono text-xs select-all mb-2">
+                        <span class="text-slate-500 font-semibold block text-[10px] uppercase tracking-wider mb-1">Español (Excel):</span>
+                        =SI(L2="Cerrado"; "Proceso Cerrado"; SI(P2=""; "Sin Fecha Límite"; SI(P2-HOY()&lt;0; "🔴 VENCIDO"; SI(P2-HOY()&lt;=5; "🟡 ALERTA: Vence Pronto"; "🟢 En Plazo"))))
+                    </div>
+                </div>
+            </div>
+            <div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-end">
+                <button onclick="closeHelpModal()" class="bg-slate-800 hover:bg-slate-700 text-white font-medium text-xs px-4 py-2 rounded-lg transition-all">Cerrar Ventana</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Form Modal (Add / Edit Student Case) -->
+    <div id="studentModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-xl shadow-xl border border-slate-200 max-w-2xl w-full overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="p-4 bg-emerald-700 text-white flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                    <i id="modalIcon" class="fa-solid fa-plus text-lg"></i>
+                    <h3 id="modalTitle" class="font-bold text-base">Nuevo Registro de Estudiante</h3>
+                </div>
+                <button onclick="closeStudentModal()" class="text-emerald-100 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="p-6 overflow-y-auto font-medium">
+                <form id="studentForm" class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                    <input type="hidden" id="editIndex" value="-1">
+                    <input type="hidden" id="studentDocId" value="">
+                    
+                    <!-- Section: Identification -->
+                    <div class="md:col-span-2 border-b border-slate-200 pb-1 mb-2">
+                        <span class="text-emerald-800 font-bold uppercase tracking-wider text-[10px]">I. Identificación del Estudiante y Apoderado</span>
+                    </div>
+                    <div>
+                        <label class="block text-slate-600 font-semibold mb-1">RUN / RUT / ID Único</label>
+                        <input type="text" id="formRut" placeholder="Ej: 21.345.678-9" class="w-full border border-slate-300 rounded-lg p-2 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-slate-600 font-semibold mb-1">Nombre Completo Estudiante</label>
+                        <input type="text" id="formName" placeholder="Nombres y Apellidos" class="w-full border border-slate-300 rounded-lg p-2 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-slate-600 font-semibold mb-1">Curso / Grado</label>
+                        <input type="text" id="formCourse" placeholder="Ej: 1° Medio A" class="w-full border border-slate-300 rounded-lg p-2 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-emerald-800 font-semibold mb-1">Nombre del Apoderado</label>
+                        <input type="text" id="formParentName" placeholder="Nombres y Apellidos Apoderado" class="w-full border border-emerald-200 rounded-lg p-2 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-emerald-800 font-semibold mb-1">Correo del Apoderado</label>
+                        <input type="email" id="formParentEmail" placeholder="ejemplo@correo.com" class="w-full border border-emerald-200 rounded-lg p-2 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-emerald-800 font-semibold mb-1">Teléfono del Apoderado</label>
+                        <input type="text" id="formParentPhone" placeholder="Ej: +56912345678" class="w-full border border-emerald-200 rounded-lg p-2 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                    </div>
+
+                    <!-- Section: Psicosocial -->
+                    <div class="md:col-span-2 border-b border-slate-200 pb-1 mt-3 mb-2">
+                        <span class="text-blue-800 font-bold uppercase tracking-wider text-[10px]">II. Soporte Psicosocial (Dupla)</span>
+                    </div>
+                    <div>
+                        <label class="block text-slate-600 font-semibold mb-1">Fecha de Derivación</label>
+                        <input type="date" id="formDerDate" class="w-full border border-slate-300 rounded-lg p-2 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-slate-600 font-semibold mb-1">Motivo de Derivación</label>
+                        <select id="formDerMotive" class="w-full border border-slate-300 rounded-lg p-2 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                            <option value="—">—</option>
+                            <option value="Salud Mental">Salud Mental</option>
+                            <option value="Violencia Familiar">Violencia Familiar</option>
+                            <option value="Negligencia">Negligencia</option>
+                            <option value="Convivencia Escolar">Convivencia Escolar</option>
+                            <option value="Ausentismo Reiterado">Ausentismo Reiterado</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-blue-900 font-bold mb-1">Derivación Red Externa</label>
+                        <select id="formExtDer" class="w-full border border-blue-300 rounded-lg p-2 focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-blue-50/20">
+                            <option value="Ninguna">Ninguna</option>
+                            <option value="Fiscalía">Fiscalía</option>
+                            <option value="Especialista privado">Especialista privado</option>
+                            <option value="Tribunal de Familia (Protección)">Tribunal de Familia (Protección)</option>
+                            <option value="LAZOS">LAZOS</option>
+                            <option value="Programa Especializado Red SENAME">Programa Especializado Red SENAME</option>
+                            <option value="OLN Mejor niñez">OLN Mejor niñez</option>
+                            <option value="CESFAM/ COSAM (Salud Mental)">CESFAM/ COSAM (Salud Mental)</option>
+                            <option value="Programa de Consumo PDC">Programa de Consumo PDC</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-600 font-semibold mb-1">Profesional Asignado</label>
+                        <select id="formStaff" class="w-full border border-slate-300 rounded-lg p-2 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                            <option value="—">—</option>
+                            <option value="Psicólogo(a)">Psicólogo(a)</option>
+                            <option value="Trabajador(a) Social">Trabajador(a) Social</option>
+                            <option value="Orientador(a)">Orientador(a)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-600 font-semibold mb-1">Estado de la Intervención</label>
+                        <select id="formIntervStatus" class="w-full border border-slate-300 rounded-lg p-2 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                            <option value="No Iniciado">No Iniciado</option>
+                            <option value="En Proceso">En Proceso</option>
+                            <option value="Cerrado">Cerrado</option>
+                        </select>
+                    </div>
+
+                    <!-- Section: Disciplinario -->
+                    <div class="md:col-span-2 border-b border-slate-200 pb-1 mt-3 mb-2">
+                        <span class="text-amber-800 font-bold uppercase tracking-wider text-[10px]">III. Disciplina y Convivencia Escolar</span>
+                    </div>
+                    <div>
+                        <label class="block text-slate-600 font-semibold mb-1">¿Tiene Medida Disciplinaria Activa?</label>
+                        <select id="formActiveMeasure" onchange="toggleMeasureFields()" class="w-full border border-slate-300 rounded-lg p-2 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                            <option value="No">No</option>
+                            <option value="Sí">Sí</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-600 font-semibold mb-1">Tipo de Medida</label>
+                        <input type="text" id="formMeasureType" placeholder="Ej: Condicionalidad" disabled class="w-full border border-slate-100 bg-slate-100 rounded-lg p-2 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-slate-600 font-semibold mb-1">Fecha de Inicio Medida</label>
+                        <input type="date" id="formMeasureStart" disabled class="w-full border border-slate-100 bg-slate-100 rounded-lg p-2 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-slate-600 font-semibold mb-1">Fecha Límite de Cierre (Cálculo de Plazo)</label>
+                        <input type="date" id="formDeadline" class="w-full border border-slate-300 rounded-lg p-2 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                    </div>
+
+                    <!-- Section: Académico y Asistencia -->
+                    <div class="md:col-span-2 border-b border-slate-200 pb-1 mt-3 mb-2">
+                        <span class="text-purple-800 font-bold uppercase tracking-wider text-[10px]">IV. Rendimiento y Asistencia</span>
+                    </div>
+                    <div>
+                        <label class="block text-slate-600 font-semibold mb-1">Promedio General (Notas)</label>
+                        <input type="number" id="formGrades" step="0.1" min="1.0" max="7.0" placeholder="Ej: 5.8" class="w-full border border-slate-300 rounded-lg p-2 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-slate-600 font-semibold mb-1">Porcentaje de Asistencia (%)</label>
+                        <input type="number" id="formAttendance" step="1" min="0" max="100" placeholder="Ej: 88" class="w-full border border-slate-300 rounded-lg p-2 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                    </div>
+
+                    <!-- Section: Observations -->
+                    <div class="md:col-span-2 border-b border-slate-200 pb-1 mt-3 mb-2">
+                        <span class="text-slate-800 font-bold uppercase tracking-wider text-[10px]">VI. Bitácora de Observaciones y Acuerdos</span>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-slate-600 font-semibold mb-1">Observaciones / Historial del Caso</label>
+                        <textarea id="formObservations" placeholder="Escribe aquí acuerdos, citaciones de apoderado, estados de avance y comentarios del caso..." rows="3" class="w-full border border-slate-300 rounded-lg p-2 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono text-[11px]"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-2">
+                <button onclick="closeStudentModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium text-xs px-4 py-2 rounded-lg transition-all">Cancelar</button>
+                <button onclick="saveStudent()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs px-5 py-2 rounded-lg transition-all flex items-center gap-1">
+                    <i class="fa-solid fa-floppy-disk"></i>
+                    Guardar Registro
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-xl shadow-xl border border-slate-200 max-w-sm w-full p-6 text-center">
+            <div class="p-3 bg-rose-50 text-rose-600 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-4">
+                <i class="fa-solid fa-trash-can text-xl"></i>
+            </div>
+            <h3 class="text-sm font-bold text-slate-900 mb-2">¿Eliminar caso de forma permanente?</h3>
+            <p class="text-xs text-slate-500 mb-6 leading-relaxed">Esta acción eliminará el registro de la base de datos de manera definitiva.</p>
+            <div class="flex gap-2 justify-center">
+                <button onclick="closeDeleteModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs px-4 py-2 rounded-lg transition-all">Cancelar</button>
+                <button id="confirmDeleteBtn" class="bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs px-4 py-2 rounded-lg transition-all">Eliminar Registro</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Banner -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white text-xs px-4 py-3 rounded-xl shadow-2xl transition-all duration-300 transform translate-y-20 opacity-0 z-50 flex items-center gap-2">
+        <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-sm"></i>
+        <span id="toastMsg">Cambios guardados con éxito</span>
+    </div>
+
+    <!-- Scripts & Core Spreadsheet Mechanics (con integración Firebase Firestore) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Configuración de Google Firebase vinculada por Valentina para SATA-INBA
+        const miConfiguracionFirebase = {
+            apiKey: "AIzaSyA_MQGKknSc4sZ-jglyCf1xtjLkyNJp7Ds",
+            authDomain: "sata-inba17-8e03f.firebaseapp.com",
+            projectId: "sata-inba17-8e03f",
+            storageBucket: "sata-inba17-8e03f.firebasestorage.app",
+            messagingSenderId: "710173523475",
+            appId: "1:710173523475:web:8d70d077b01d0a4d0189e6"
+        };
+
+        // Estado global
+        let db, auth;
+        let students = [];
+        let isFirebaseConnected = false;
+        let deleteTargetDocId = null;
+
+        // Fecha fija de simulación de plazos (13 Julio 2026)
+        const TODAY = new Date('2026-07-13');
+
+        // Inicializador del entorno de guardado
+        async function initFirebaseConnection() {
+            try {
+                const app = initializeApp(miConfiguracionFirebase);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                setSyncStatus("Autenticando...", "bg-amber-100 text-amber-800 border-amber-200", "bg-amber-500");
+
+                // Inicio de sesión anónimo obligatorio
+                await signInAnonymously(auth);
+
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        const uid = user.uid;
+                        document.getElementById("userIdDisplay").innerText = `Sincronizado con Google Cloud (ID: ${uid.substring(0,6)}...)`;
+                        setSyncStatus("Sincronizado", "bg-emerald-100 text-emerald-800 border-emerald-200", "bg-emerald-500");
+                        isFirebaseConnected = true;
+
+                        // Sincronización en tiempo real
+                        setupRealtimeSync();
+                    } else {
+                        document.getElementById("userIdDisplay").innerText = "Sin sesión activa en la nube.";
+                        setSyncStatus("Guardado en PC (Local)", "bg-cyan-100 text-cyan-800 border-cyan-200", "bg-cyan-500");
+                        isFirebaseConnected = false;
+                        loadLocalBackup();
+                    }
+                });
+
+            } catch (error) {
+                console.error("Error al conectar base de datos, usando memoria local:", error);
+                document.getElementById("userIdDisplay").innerText = "Trabajando en modo local desconectado.";
+                setSyncStatus("Guardado en PC (Local)", "bg-cyan-100 text-cyan-800 border-cyan-200", "bg-cyan-500");
+                isFirebaseConnected = false;
+                loadLocalBackup();
+            }
+        }
+
+        // Oyente de datos de Firestore en tiempo real
+        function setupRealtimeSync() {
+            const studentsCol = collection(db, 'students');
+
+            onSnapshot(studentsCol, (snapshot) => {
+                let tempStudents = [];
+                snapshot.forEach((doc) => {
+                    tempStudents.push({
+                        id: doc.id,
+                        docId: doc.id,
+                        ...doc.data()
+                    });
+                });
+
+                // Ordenamiento en memoria del cliente por ID numérico
+                tempStudents.sort((a, b) => a.id - b.id);
+
+                students = tempStudents;
+                renderTable();
+                setSyncStatus("Sincronizado", "bg-emerald-100 text-emerald-800 border-emerald-200", "bg-emerald-500");
+            }, (error) => {
+                console.error("Error de sincronización en tiempo real:", error);
+                showToast("Fallo al actualizar de la nube. Cargando respaldo local.", "fa-solid fa-triangle-exclamation text-amber-500");
+                loadLocalBackup();
+            });
+        }
+
+        // Copia de seguridad en caso de caída de internet
+        function loadLocalBackup() {
+            const localData = localStorage.getItem('inba_students_data_local');
+            if (localData) {
+                students = JSON.parse(localData);
+            } else {
+                students = [];
+            }
+            renderTable();
+        }
+
+        // Cambiar el estado visual del indicador de red
+        function setSyncStatus(text, wrapperClasses, dotClass) {
+            const syncStatusDiv = document.getElementById("sync-status");
+            const syncDot = document.getElementById("sync-dot");
+            const syncText = document.getElementById("sync-text");
+
+            if (syncStatusDiv && syncDot && syncText) {
+                syncStatusDiv.className = `border text-xs px-3 py-1.5 rounded-lg flex items-center gap-2 font-medium ${wrapperClasses}`;
+                syncDot.className = `relative inline-flex rounded-full h-2 w-2 ${dotClass}`;
+                syncText.innerText = text;
+            }
+        }
+
+        // GUARDAR / EDITAR CASO
+        window.saveStudent = async function() {
+            const form = document.getElementById("studentForm");
+            if (!form.reportValidity()) return;
+
+            setSyncStatus("Guardando...", "bg-amber-100 text-amber-800 border-amber-200", "bg-amber-500");
+
+            const index = parseInt(document.getElementById("editIndex").value);
+            const docId = document.getElementById("studentDocId").value;
+            
+            const gradesInput = document.getElementById("formGrades").value;
+            const parsedGrades = gradesInput !== "" ? parseFloat(gradesInput) : null;
+            
+            const attInput = document.getElementById("formAttendance").value;
+            const parsedAttendance = attInput !== "" ? parseInt(attInput) : null;
+
+            const studentData = {
+                rut: document.getElementById("formRut").value || "Sin RUN",
+                name: document.getElementById("formName").value || "Estudiante Nuevo",
+                course: document.getElementById("formCourse").value || "—",
+                parentName: document.getElementById("formParentName").value || "—",
+                parentEmail: document.getElementById("formParentEmail").value || "—",
+                parentPhone: document.getElementById("formParentPhone").value || "—",
+                derivDate: document.getElementById("formDerDate").value || "",
+                derivMotive: document.getElementById("formDerMotive").value || "—",
+                extDer: document.getElementById("formExtDer").value || "Ninguna",
+                staff: document.getElementById("formStaff").value || "—",
+                intervStatus: document.getElementById("formIntervStatus").value || "No Iniciado",
+                activeMeasure: document.getElementById("formActiveMeasure").value || "No",
+                measureType: document.getElementById("formMeasureType").value || "",
+                measureStart: document.getElementById("formMeasureStart").value || "",
+                deadline: document.getElementById("formDeadline").value || "",
+                grades: parsedGrades,
+                attendance: parsedAttendance,
+                observations: document.getElementById("formObservations").value || ""
+            };
+
+            closeStudentModal();
+
+            // Guardado Local alternativo
+            if (!isFirebaseConnected) {
+                if (index === -1) {
+                    studentData.id = students.length > 0 ? Math.max(...students.map(s => s.id)) + 1 : 1;
+                    students.push(studentData);
+                } else {
+                    studentData.id = students[index].id;
+                    students[index] = studentData;
+                }
+                
+                localStorage.setItem('inba_students_data_local', JSON.stringify(students));
+                setSyncStatus("Guardado en PC (Local)", "bg-cyan-100 text-cyan-800 border-cyan-200", "bg-cyan-500");
+                renderTable();
+                showToast("Caso guardado con éxito en el PC.", "fa-solid fa-laptop-medical text-cyan-500");
+                return;
+            }
+
+            // Guardado en la Nube
+            try {
+                const studentsCol = collection(db, 'students');
+
+                if (index === -1) {
+                    const newId = students.length > 0 ? Math.max(...students.map(s => s.id)) + 1 : 1;
+                    studentData.id = newId;
+                    const newDocId = `student_${newId}`;
+                    await setDoc(doc(studentsCol, newDocId), studentData);
+                    showToast("Enviado a Google Cloud con éxito.", "fa-solid fa-cloud-arrow-up text-emerald-400");
+                } else {
+                    studentData.id = students[index].id;
+                    await setDoc(doc(studentsCol, docId), studentData);
+                    showToast("Registro actualizado en la nube.", "fa-solid fa-cloud-arrow-up text-emerald-400");
+                }
+            } catch (err) {
+                console.error("Error al guardar en Firestore:", err);
+                showToast("Fallo al subir a internet. Guardado de forma local.", "fa-solid fa-triangle-exclamation text-amber-500");
+                loadLocalBackup();
+            }
+        };
+
+        // IMPORTACIÓN DE EXCEL INTELIGENTE (IMPORTADORA MASIVA)
+        window.importExcel = function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+                    if (jsonData.length === 0) {
+                        showToast("El archivo de Excel está vacío.", "fa-solid fa-triangle-exclamation text-amber-500");
+                        return;
+                    }
+
+                    setSyncStatus("Importando...", "bg-amber-100 text-amber-800 border-amber-200", "bg-amber-500");
+                    let importCount = 0;
+
+                    for (const row of jsonData) {
+                        // Procesamiento adaptativo de campos
+                        const studentData = {
+                            rut: row["RUT"] || row["RUN"] || row["ID"] || row["RUN / RUT"] || "Sin RUN",
+                            name: row["Nombre Completo"] || row["Nombre Completo Estudiante"] || row["Nombre"] || row["Estudiante"] || "Estudiante Nuevo",
+                            course: row["Curso"] || row["Grado"] || row["Curso / Grado"] || "—",
+                            parentName: row["Nombre Apoderado"] || row["Apoderado"] || "—",
+                            parentEmail: row["Correo Apoderado"] || row["Email Apoderado"] || "—",
+                            parentPhone: row["Teléfono Apoderado"] || row["Fono Apoderado"] || "—",
+                            derivDate: row["Fecha Derivación"] || row["Fecha"] || "",
+                            derivMotive: row["Motivo Derivación"] || row["Motivo"] || "—",
+                            extDer: row["Red Externa"] || row["Derivación Externa"] || row["Derivación Red Externa"] || "Ninguna",
+                            staff: row["Profesional Asignado"] || row["Profesional"] || "—",
+                            intervStatus: row["Estado Intervención"] || row["Estado"] || "No Iniciado",
+                            activeMeasure: row["¿Tiene Medida Activa?"] || row["Medida Activa"] || "No",
+                            measureType: row["Tipo de Medida"] || "",
+                            measureStart: row["Fecha Inicio Medida"] || "",
+                            deadline: row["Fecha Límite Cierre"] || row["Fecha Límite"] || "",
+                            grades: (row["Promedio de Notas"] || row["Promedio"] || row["Notas"]) ? parseFloat(row["Promedio de Notas"] || row["Promedio"] || row["Notas"]) : null,
+                            attendance: (row["% de Asistencia"] || row["Asistencia"]) ? parseAttendance(row["% de Asistencia"] || row["Asistencia"]) : null,
+                            observations: row["Observaciones"] || row["Bitácora"] || row["Historial"] || ""
+                        };
+
+                        // Helper para interpretar asistencia en formato flotante (0.88) o porcentaje (88)
+                        function parseAttendance(val) {
+                            if (val === undefined || val === null || val === "") return null;
+                            let num = parseFloat(val);
+                            if (isNaN(num)) return null;
+                            if (num <= 1 && num > 0) {
+                                return Math.round(num * 100);
+                            }
+                            return Math.round(num);
+                        }
+
+                        if (!isFirebaseConnected) {
+                            studentData.id = students.length > 0 ? Math.max(...students.map(s => s.id)) + 1 : 1;
+                            students.push(studentData);
+                        } else {
+                            try {
+                                const studentsCol = collection(db, 'students');
+                                const newId = students.length > 0 ? Math.max(...students.map(s => s.id)) + 1 : 1;
+                                studentData.id = newId;
+                                const newDocId = `student_${newId}`;
+                                await setDoc(doc(studentsCol, newDocId), studentData);
+                                students.push({ docId: newDocId, ...studentData });
+                            } catch (err) {
+                                console.error("Error al importar fila en Firestore:", err);
+                            }
+                        }
+                        importCount++;
+                    }
+
+                    if (isFirebaseConnected) {
+                        setSyncStatus("Sincronizado", "bg-emerald-100 text-emerald-800 border-emerald-200", "bg-emerald-500");
+                    } else {
+                        localStorage.setItem('inba_students_data_local', JSON.stringify(students));
+                        setSyncStatus("Guardado en PC (Local)", "bg-cyan-100 text-cyan-800 border-cyan-200", "bg-cyan-500");
+                        renderTable();
+                    }
+
+                    showToast(`¡Súper! Se importaron ${importCount} estudiantes de Excel.`, "fa-solid fa-file-excel text-emerald-400");
+
+                } catch (error) {
+                    console.error("Error al analizar Excel:", error);
+                    showToast("No pudimos leer el Excel. Verifica el formato.", "fa-solid fa-triangle-exclamation text-rose-500");
+                }
+                event.target.value = ''; // Limpiar el input para volver a cargar
+            };
+            reader.readAsArrayBuffer(file);
+        };
+
+        // ELIMINAR REGISTROS
+        window.deleteStudent = function(index) {
+            const student = students[index];
+            deleteTargetDocId = student.id || student.docId || `student_${index}`;
+            document.getElementById("deleteModal").classList.remove("hidden");
+        };
+
+        window.closeDeleteModal = function() {
+            document.getElementById("deleteModal").classList.add("hidden");
+            deleteTargetDocId = null;
+        };
+
+        document.getElementById("confirmDeleteBtn").addEventListener("click", async () => {
+            if (deleteTargetDocId) {
+                try {
+                    // Estado visual e inicio del borrado
+            setSyncStatus("Eliminando...", "bg-rose-100 text-rose-800 border-rose-200", "bg-rose-500");
+            closeDeleteModal();
+
+            if (!isFirebaseConnected) {
+                // Borrado local en PC si no hay conexión
+                const idNum = 
+parseInt(deleteTargetDocId.replace("student_", ""));
+                students = students.filter(s => s.id !== idNum);
+                localStorage.setItem('inba_students_data_local', JSON.stringify(students));
+                setSyncStatus("Guardado en PC (Local)", "bg-cyan-100 text-cyan-800 border-cyan-200", "bg-cyan-500");
+                renderTable();
+                showToast("Registro eliminado con éxito.", "fa-solid fa-trash text-rose-500");
+                return;
+            }
+
+            // BORRADO REAL EN LA NUBE (Esto faltaba dentro del try)
+            if (deleteTargetDocId) {
+            const studentDocRef = doc(db, 'students', deleteTargetDocId);
+            await deleteDoc(studentDocRef);
+            showToast("Caso borrado permanentemente de la nube.", "fa-solid fa-trash text-red-500");
+            }
+            } catch (error) {
+                console.error("Fallo de borrado:", error);
+                showToast("Fallo al eliminar de la nube.", "fa-solid fa-triangle-exclamation text-rose-500");
+            } finally {
+                setSyncStatus("Sincronizado con Google Cloud", "bg-emerald-100 text-emerald-800 border-emerald-200", "bg-emerald-500");
+                }
+             }
+        });
+           
+
+        // CÁLCULO DE ALERTAS AUTOMÁTICAS
+        window.calculateAttendanceAlert = function(attendance) {
+            if (attendance === undefined || attendance === null || attendance === "") {
+                return { text: "Sin Asistencia", class: "bg-slate-100 text-slate-500 border-slate-200" };
+            }
+            const percentage = attendance / 100;
+            if (percentage < 0.85) {
+                return { text: "CRÍTICA (<85%)", class: "bg-red-100 text-red-800 border-red-200 font-bold" };
+            } else if (percentage < 0.90) {
+                return { text: "RIESGO (85-90%)", class: "bg-amber-100 text-amber-800 border-amber-200 font-bold" };
+            } else {
+                return { text: "REGULAR (Ok)", class: "bg-green-100 text-green-800 border-green-200" };
+            }
+        };
+
+        window.calculateDeadlineAlert = function(status, deadlineStr) {
+            if (status === "Cerrado") {
+                return { text: "Proceso Cerrado", class: "bg-emerald-50 text-emerald-700 border-emerald-100" };
+            }
+            if (!deadlineStr) {
+                return { text: "Sin Fecha Límite", class: "bg-slate-100 text-slate-500 border-slate-200" };
+            }
+
+            const deadlineDate = new Date(deadlineStr);
+            const diffTime = deadlineDate - TODAY;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            if (diffDays < 0) {
+                return { text: "🔴 VENCIDO (" + Math.abs(diffDays) + " d)", class: "bg-rose-100 text-rose-800 border-rose-200 font-bold" };
+            } else if (diffDays <= 5) {
+                return { text: "🟡 ALERTA (Vence en " + diffDays + " d)", class: "bg-amber-100 text-amber-800 border-amber-200 font-semibold animate-pulse" };
+            } else {
+                return { text: "🟢 En Plazo (" + diffDays + " d)", class: "bg-green-100 text-green-800 border-green-200" };
+            }
+        };
+
+        // RENDERIZAR TABLA DINÁMICAMENTE
+        window.renderTable = function(dataToRender = students) {
+            const tableBody = document.getElementById("studentTableBody");
+            const emptyState = document.getElementById("emptyState");
+            tableBody.innerHTML = "";
+
+            if (dataToRender.length === 0) {
+                emptyState.classList.remove("hidden");
+                updateStats();
+                return;
+            } else {
+                emptyState.classList.add("hidden");
+            }
+
+            dataToRender.forEach((student, index) => {
+                const attAlert = calculateAttendanceAlert(student.attendance);
+                const dlAlert = calculateDeadlineAlert(student.intervStatus, student.deadline);
+                const originalIndex = students.findIndex(s => s.id === student.id);
+                const showGrades = (student.grades !== undefined && student.grades !== null) ? student.grades.toFixed(1) : "—";
+                const showAttendance = (student.attendance !== undefined && student.attendance !== null) ? `${student.attendance}%` : "—";
+
+                const tr = document.createElement("tr");
+                tr.className = "hover:bg-slate-50 transition-colors divide-x divide-slate-100 align-middle border-b border-slate-100";
+                tr.innerHTML = `
+                    <td class="px-3 py-2 font-mono text-slate-500">${student.id}</td>
+                    <td class="px-3 py-2 font-mono text-slate-800 font-medium">${student.rut}</td>
+                    <td class="px-3 py-2 text-slate-700">${student.course}</td>
+                    <td class="px-3 py-2 font-semibold text-slate-950">${student.name}</td>
+                    <td class="px-3 py-2 text-slate-800 bg-emerald-50/10">${student.parentName || '—'}</td>
+                    <td class="px-3 py-2 text-slate-600 bg-emerald-50/10 font-mono text-[10px] break-all">${student.parentEmail || '—'}</td>
+                    <td class="px-3 py-2 text-slate-800 bg-emerald-50/10 font-mono">${student.parentPhone || '—'}</td>
+                    
+                    <td class="px-3 py-2 text-slate-600">${student.derivDate || '—'}</td>
+                    <td class="px-3 py-2">
+                        <span class="px-2 py-0.5 rounded-full bg-slate-100 border border-slate-200 text-[10px] text-slate-700 font-semibold text-center">${student.derivMotive}</span>
+                    </td>
+                    <td class="px-3 py-2 bg-blue-50/10">
+                        ${student.extDer && student.extDer !== 'Ninguna' ? `<span class="px-2 py-0.5 rounded-full bg-indigo-100 border border-indigo-200 text-[10px] text-indigo-800 font-bold text-center">${student.extDer}</span>` : '<span class="text-slate-400 font-normal">Ninguna</span>'}
+                    </td>
+                    <td class="px-3 py-2 text-slate-700">${student.staff}</td>
+                    <td class="px-3 py-2 text-center">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold ${
+                            student.intervStatus === 'Cerrado' ? 'bg-emerald-100 text-emerald-800' : 
+                            student.intervStatus === 'En Proceso' ? 'bg-blue-100 text-blue-800' : 'bg-slate-100 text-slate-700'
+                        }">${student.intervStatus}</span>
+                    </td>
+                    
+                    <td class="px-3 py-2 text-center text-[11px] font-semibold ${student.activeMeasure === 'Sí' ? 'text-amber-600 bg-amber-50/20' : 'text-slate-500'}">${student.activeMeasure}</td>
+                    <td class="px-3 py-2 text-slate-700">${student.measureType || '—'}</td>
+                    <td class="px-3 py-2 text-slate-500">${student.measureStart || '—'}</td>
+                    <td class="px-3 py-2 text-slate-800 font-medium">${student.deadline || '—'}</td>
+                    
+                    <td class="px-3 py-2 font-semibold text-center text-[13px] ${(student.grades !== null && student.grades < 4.0) ? 'text-rose-600 bg-rose-50/20' : 'text-slate-800'}">${showGrades}</td>
+                    <td class="px-3 py-2 font-semibold text-center text-[13px] ${(student.attendance !== null && student.attendance < 85) ? 'text-rose-600 bg-rose-50/20' : 'text-slate-800'}">${showAttendance}</td>
+                    
+                    <td class="px-3 py-2">
+                        <span class="px-2.5 py-1 rounded-md text-[10px] block text-center border ${attAlert.class}">
+                            ${attAlert.text}
+                        </span>
+                    </td>
+                    <td class="px-3 py-2">
+                        <span class="px-2.5 py-1 rounded-md text-[10px] block text-center border ${dlAlert.class}">
+                            ${dlAlert.text}
+                        </span>
+                    </td>
+                    <td class="px-3 py-2 text-slate-700 font-mono text-[10px] max-w-[180px] truncate" title="${student.observations || ''}">
+                        ${student.observations || '<span class="text-slate-400 italic">Sin observaciones</span>'}
+                    </td>
+                    
+                    <td class="px-3 py-2 text-center">
+                        <div class="flex items-center justify-center gap-1.5">
+                            <button onclick="editStudent(${originalIndex})" class="text-blue-600 hover:text-blue-900 hover:bg-blue-50 p-1.5 rounded transition" title="Editar Fila">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                            <button onclick="deleteStudent(${originalIndex})" class="text-rose-600 hover:text-rose-900 hover:bg-rose-50 p-1.5 rounded transition" title="Eliminar Registro">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
+
+            updateStats();
+        };
+
+        // ACTUALIZACIÓN DE ESTADÍSTICAS KPI
+        window.updateStats = function() {
+            document.getElementById("stat-total").innerText = students.length;
+
+            const critAttendance = students.filter(s => s.attendance !== null && s.attendance < 85).length;
+            document.getElementById("stat-critical-attendance").innerText = critAttendance;
+
+            const activeMeasures = students.filter(s => s.activeMeasure === "Sí").length;
+            document.getElementById("stat-active-measures").innerText = activeMeasures;
+
+            const expiredCount = students.filter(s => {
+                if (s.intervStatus === "Cerrado" || !s.deadline) return false;
+                const limit = new Date(s.deadline);
+                return (limit - TODAY) < 0;
+            }).length;
+            document.getElementById("stat-expired-deadlines").innerText = expiredCount;
+
+            const searchInputVal = document.getElementById("searchInput").value.toLowerCase();
+            const filterMotiveVal = document.getElementById("filterMotive").value;
+            const filterStatusVal = document.getElementById("filterStatus").value;
+
+            const visibleCount = students.filter(s => {
+                const matchSearch = s.name.toLowerCase().includes(searchInputVal) || 
+                                    s.rut.toLowerCase().includes(searchInputVal) || 
+                                    s.course.toLowerCase().includes(searchInputVal) ||
+                                    (s.parentName && s.parentName.toLowerCase().includes(searchInputVal));
+                const matchMotive = filterMotiveVal === "" || s.derivMotive === filterMotiveVal;
+                const matchStatus = filterStatusVal === "" || s.intervStatus === filterStatusVal;
+                return matchSearch && matchMotive && matchStatus;
+            }).length;
+
+            document.getElementById("displayedCount").innerText = visibleCount;
+            document.getElementById("totalCount").innerText = students.length;
+        };
+
+        // SISTEMA DE FILTRADO MULTI-CRITERIO
+        window.filterData = function() {
+            const searchInputVal = document.getElementById("searchInput").value.toLowerCase();
+            const filterMotiveVal = document.getElementById("filterMotive").value;
+            const filterStatusVal = document.getElementById("filterStatus").value;
+
+            const filtered = students.filter(s => {
+                const matchSearch = s.name.toLowerCase().includes(searchInputVal) || 
+                                    s.rut.toLowerCase().includes(searchInputVal) || 
+                                    s.course.toLowerCase().includes(searchInputVal) ||
+                                    (s.parentName && s.parentName.toLowerCase().includes(searchInputVal));
+                const matchMotive = filterMotiveVal === "" || s.derivMotive === filterMotiveVal;
+                const matchStatus = filterStatusVal === "" || s.intervStatus === filterStatusVal;
+                return matchSearch && matchMotive && matchStatus;
+            });
+
+            renderTable(filtered);
+        };
+
+        // EXPORTACIÓN A EXCEL CON FÓRMULAS AUTOMÁTICAS ADAPTADAS
+        window.exportToExcel = function() {
+            const formattedData = students.map((s, index) => {
+                const rowNum = index + 2; 
+                return {
+                    "ID Estudiante": s.id,
+                    "RUN / RUT": s.rut,
+                    "Curso / Grado": s.course,
+                    "Nombre Completo": s.name,
+                    "Nombre Apoderado": s.parentName || "—",
+                    "Correo Apoderado": s.parentEmail || "—",
+                    "Teléfono Apoderado": s.parentPhone || "—",
+                    "Fecha Derivación": s.derivDate,
+                    "Motivo Derivación": s.derivMotive,
+                    "Derivación Externa": s.extDer || "Ninguna",
+                    "Profesional Asignado": s.staff,
+                    "Estado Intervención": s.intervStatus,
+                    "¿Tiene Medida Activa?": s.activeMeasure,
+                    "Tipo de Medida": s.measureType || "Ninguna",
+                    "Fecha Inicio Medida": s.measureStart || "N/A",
+                    "Fecha Límite Cierre": s.deadline,
+                    "Promedio de Notas": s.grades,
+                    "% de Asistencia": s.attendance !== null ? s.attendance / 100 : "", 
+                    
+                    // Fórmulas nativas de Excel re-mapeadas a las nuevas columnas
+                    "Alerta de Asistencia": { 
+                        f: `IF(R${rowNum}="","",IF(R${rowNum}<0.85,"CRÍTICA (Asistencia Crónica)",IF(R${rowNum}<0.9,"RIESGO (En Peligro)","REGULAR (Ok)")))` 
+                    },
+                    "Alerta de Plazos": { 
+                        f: `IF(L${rowNum}="Cerrado","Proceso Cerrado",IF(P${rowNum}="","Sin Fecha Límite",IF(P${rowNum}-TODAY()<0,"🔴 VENCIDO","🟢 En Plazo")))` 
+                    },
+                    "Observaciones (Bitácora)": s.observations || ""
+                };
+            });
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(formattedData);
+
+            // Ajuste de visualización de porcentajes en la Columna R (Index 17 - 0-indexed)
+            const range = XLSX.utils.decode_range(ws['!ref']);
+            for (let r = range.s.r + 1; r <= range.e.r; r++) {
+                const cellRef = XLSX.utils.encode_cell({ r: r, c: 17 }); 
+                if (ws[cellRef]) {
+                    ws[cellRef].z = '0%'; 
+                }
+            }
+
+            ws['!cols'] = [
+                { wch: 8 },  // A (ID)
+                { wch: 15 }, // B (RUT)
+                { wch: 30 }, // C (Nombre)
+                { wch: 15 }, // D (Curso)
+                { wch: 25 }, // E (Nombre Apoderado)
+                { wch: 25 }, // F (Correo Apoderado)
+                { wch: 18 }, // G (Teléfono Apoderado)
+                { wch: 15 }, // H (Fecha Derivación)
+                { wch: 22 }, // I (Motivo)
+                { wch: 25 }, // J (Derivación Externa)
+                { wch: 20 }, // K (Profesional)
+                { wch: 18 }, // L (Estado)
+                { wch: 15 }, // M (Medida)
+                { wch: 25 }, // N (Tipo Medida)
+                { wch: 18 }, // O (Inicio)
+                { wch: 18 }, // P (Límite)
+                { wch: 15 }, // Q (Promedio)
+                { wch: 15 }, // R (Asistencia)
+                { wch: 28 }, // S (Alerta Asistencia)
+                { wch: 28 }, // T (Alerta Plazo)
+                { wch: 45 }  // U (Observaciones)
+            ];
+
+            XLSX.utils.book_append_sheet(wb, ws, "Casos Seguimiento");
+            XLSX.writeFile(wb, "Planilla_Seguimiento_Psicosocial_Alertas.xlsx");
+            showToast("Planilla Excel descargada con éxito.", "fa-solid fa-file-excel text-emerald-400");
+        };
+
+        // ACCIONES DE INTERFAZ Y MODALES
+        window.openHelpModal = function() {
+            document.getElementById("helpModal").classList.remove("hidden");
+        };
+        window.closeHelpModal = function() {
+            document.getElementById("helpModal").classList.add("hidden");
+        };
+
+        window.toggleMeasureFields = function() {
+            const isActive = document.getElementById("formActiveMeasure").value === "Sí";
+            const typeInput = document.getElementById("formMeasureType");
+            const startInput = document.getElementById("formMeasureStart");
+
+            if (isActive) {
+                typeInput.disabled = false;
+                typeInput.classList.remove("bg-slate-100", "border-slate-100");
+                typeInput.classList.add("bg-white", "border-slate-300");
+                
+                startInput.disabled = false;
+                startInput.classList.remove("bg-slate-100", "border-slate-100");
+                startInput.classList.add("bg-white", "border-slate-300");
+            } else {
+                typeInput.value = "";
+                typeInput.disabled = true;
+                typeInput.classList.add("bg-slate-100", "border-slate-100");
+                typeInput.classList.remove("bg-white", "border-slate-300");
+
+                startInput.value = "";
+                startInput.disabled = true;
+                startInput.classList.add("bg-slate-100", "border-slate-100");
+                startInput.classList.remove("bg-white", "border-slate-300");
+            }
+        };
+
+        window.openAddModal = function() {
+            document.getElementById("studentForm").reset();
+            document.getElementById("editIndex").value = "-1";
+            document.getElementById("studentDocId").value = "";
+            document.getElementById("modalTitle").innerText = "Nuevo Registro de Estudiante";
+            document.getElementById("modalIcon").className = "fa-solid fa-plus text-lg";
+            toggleMeasureFields();
+            document.getElementById("studentModal").classList.remove("hidden");
+        };
+
+        window.closeStudentModal = function() {
+            document.getElementById("studentModal").classList.add("hidden");
+        };
+
+        window.editStudent = function(index) {
+            const student = students[index];
+            document.getElementById("editIndex").value = index;
+            document.getElementById("studentDocId").value = student.docId || "";
+            document.getElementById("modalTitle").innerText = "Editar Caso Escolar";
+            document.getElementById("modalIcon").className = "fa-solid fa-pen-to-square text-lg";
+
+            document.getElementById("formRut").value = student.rut === "Sin RUN" ? "" : student.rut;
+            document.getElementById("formName").value = student.name === "Estudiante Nuevo" ? "" : student.name;
+            document.getElementById("formCourse").value = student.course === "—" ? "" : student.course;
+            document.getElementById("formParentName").value = student.parentName === "—" ? "" : student.parentName;
+            document.getElementById("formParentEmail").value = student.parentEmail === "—" ? "" : student.parentEmail;
+            document.getElementById("formParentPhone").value = student.parentPhone === "—" ? "" : student.parentPhone;
+            
+            document.getElementById("formDerDate").value = student.derivDate || "";
+            document.getElementById("formDerMotive").value = student.derivMotive;
+            document.getElementById("formExtDer").value = student.extDer || "Ninguna";
+            document.getElementById("formStaff").value = student.staff;
+            document.getElementById("formIntervStatus").value = student.intervStatus;
+            document.getElementById("formActiveMeasure").value = student.activeMeasure;
+            
+            toggleMeasureFields();
+            if (student.activeMeasure === "Sí") {
+                document.getElementById("formMeasureType").value = student.measureType || "";
+                document.getElementById("formMeasureStart").value = student.measureStart || "";
+            }
+
+            document.getElementById("formDeadline").value = student.deadline || "";
+            document.getElementById("formGrades").value = student.grades !== null ? student.grades : "";
+            document.getElementById("formAttendance").value = student.attendance !== null ? student.attendance : "";
+            document.getElementById("formObservations").value = student.observations || "";
+
+            document.getElementById("studentModal").classList.remove("hidden");
+        };
+
+        window.showToast = function(message, iconClass = "fa-solid fa-circle-check text-emerald-400") {
+            const toast = document.getElementById("toast");
+            const toastMsg = document.getElementById("toastMsg");
+            const toastIcon = document.getElementById("toastIcon");
+
+            toastMsg.innerText = message;
+            toastIcon.className = iconClass;
+
+            toast.classList.remove("translate-y-20", "opacity-0");
+            toast.classList.add("translate-y-0", "opacity-100");
+
+            setTimeout(() => {
+                toast.classList.add("translate-y-20", "opacity-0");
+                toast.classList.remove("translate-y-0", "opacity-100");
+            }, 3500);
+        };
+
+        window.onload = function() {
+            initFirebaseConnection();
+        };
+    </script>
+</body>
+</html>
